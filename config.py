@@ -2,17 +2,15 @@ import os
 from openai import OpenAI
 from tavily import TavilyClient
 
-# ── Load .env ──────────────────────────────────────────────────────────────
 _env_path = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(_env_path):
-    with open(_env_path) as _f:
-        for _line in _f:
-            _line = _line.strip()
-            if _line and not _line.startswith("#") and "=" in _line:
-                k, v = _line.split("=", 1)
+    with open(_env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
                 os.environ.setdefault(k.strip(), v.strip())
 
-# ── Clients ────────────────────────────────────────────────────────────────
 llm = OpenAI(
     api_key=os.environ.get("GROQ_API_KEY", ""),
     base_url="https://api.groq.com/openai/v1"
@@ -20,11 +18,9 @@ llm = OpenAI(
 search_client  = TavilyClient(api_key=os.environ.get("TAVILY_API_KEY", ""))
 APOLLO_API_KEY = os.environ.get("APOLLO_API_KEY", "")
 
-# 70B for synthesis only — 8B for everything else (query gen, extraction)
 MODEL      = "llama-3.3-70b-versatile"
 MODEL_FAST = "llama-3.1-8b-instant"
 
-# ── System prompt ──────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are a venture discovery agent built for Utopia Studio — a startup studio in Doha, Qatar.
 
 Your role is to help early-stage founders prepare for their G0 (Gate Zero) investment review.

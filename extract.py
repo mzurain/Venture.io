@@ -2,11 +2,8 @@ import json
 from config import llm, MODEL_FAST
 
 _NULL = {"null", "none", "title not found", "company not found", "unknown", "n/a", ""}
-
-# Max blocks per LLM call
 _BATCH_SIZE = 10
 
-# URL path fragments that never reliably contain a real person's name+title
 _SKIP_URL_FRAGMENTS = (
     "linkedin.com/jobs/",
     "linkedin.com/company/",
@@ -27,17 +24,11 @@ def _confidence(title: str, company: str, url: str) -> str:
 
 
 def _is_skip_url(url: str) -> bool:
-    """Return True if URL is a job posting, company page, or other non-person source."""
     url_lower = url.lower()
     return any(frag in url_lower for frag in _SKIP_URL_FRAGMENTS)
 
 
 def _extract_batch(blocks: list[str]) -> list:
-    """
-    Run one LLM extraction call on a batch of text blocks.
-    Returns a list of raw person dicts (unvalidated).
-    Raises on failure so the caller can log it.
-    """
     combined = "---\n".join(blocks)
 
     response = llm.chat.completions.create(
@@ -98,24 +89,17 @@ TEXT:
 
 
 def extract_people(raw_results: list) -> list:
-    """
-    Extract real named individuals from Tavily raw results.
-    Filters out job posting / company page URLs before extraction.
-    Processes in batches of _BATCH_SIZE.
-    Drops anyone missing both title and company.
-    """
     if not raw_results:
         return []
 
     blocks    = []
     seen_urls = set()
+
     for r in raw_results:
         url = r.get("url", "")
 
-        # ── Filter: skip job postings and company/school pages ──────────────
         if _is_skip_url(url):
             continue
-
         if url in seen_urls:
             continue
         seen_urls.add(url)
@@ -151,11 +135,8 @@ def extract_people(raw_results: list) -> list:
 
         if not name or len(name.split()) < 2:
             continue
-
-        # Secondary guard for company/school URLs that slipped through
         if "linkedin.com/company/" in url or "linkedin.com/school/" in url:
             continue
-
         if name.lower() in seen:
             continue
 
@@ -183,7 +164,6 @@ def extract_people(raw_results: list) -> list:
 
 
 def merge_people(existing: list, new_batch: list) -> list:
-    """Merge new people into existing list, deduplicating by name."""
     seen = {p["name"].lower() for p in existing}
     for p in new_batch:
         if p["name"].lower() not in seen:

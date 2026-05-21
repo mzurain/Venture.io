@@ -21,16 +21,9 @@ def _parse_json(raw: str) -> dict:
 
 
 def _validate_sector_relevance(venture: str, targets: list) -> list:
-    """
-    Post-process call_targets to reject those with weak sector alignment.
-    Uses a quick LLM check (MODEL_FAST) to validate each target's role/company
-    against the venture description.
-    Returns filtered list of high-confidence targets only.
-    """
     if not targets:
         return []
 
-    # Batch validate all targets
     target_list = "\n".join(
         f"{i}. {t.get('name')} — {t.get('title')} at {t.get('company')}"
         for i, t in enumerate(targets, 1)
@@ -83,15 +76,12 @@ KEEP"""
                 if verdict == "KEEP":
                     filtered.append(target)
 
-        # If filtering removed everything but there are good candidates, keep at least 2
         if len(filtered) == 0 and len(targets) >= 2:
-            # fallback: keep the first two targets (manual override)
             filtered = targets[:2]
 
         return filtered
 
     except Exception:
-        # If validation fails, return all targets (fail-safe)
         return targets
 
 
@@ -102,14 +92,6 @@ def synthesize(
     all_raw: list,
     tried_queries: list[str]
 ) -> dict:
-    """
-    Final LLM call using MODEL (70B) — synthesis needs the best model.
-    Builds market brief, ranked call targets, outreach, pipeline note.
-    Post-processes targets for sector relevance to reject loose matches.
-    Raises on failure so agent.py can surface the error cleanly.
-    """
-    # Keep context under ~6000 chars to stay well within Groq's TPM limit
-    # The people list + system prompt + output already consume ~4000 tokens
     combined = "\n\n---\n\n".join(all_context)
     if len(combined) > 6000:
         combined = combined[:6000] + "\n...[truncated for token limit]"
@@ -156,13 +138,11 @@ Instructions:
     result = _parse_json(response.choices[0].message.content)
     result["generated_at"] = datetime.now(timezone.utc).isoformat()
 
-    # ── Post-process: filter targets for sector relevance ──────────────────
     original_targets = result.get("call_targets", [])
     if original_targets:
         filtered_targets = _validate_sector_relevance(venture, original_targets)
         result["call_targets"] = filtered_targets
 
-        # If we dropped targets, update gap_note
         if len(filtered_targets) < len(original_targets):
             dropped = len(original_targets) - len(filtered_targets)
             result["gap_note"] = (

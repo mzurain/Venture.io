@@ -13,13 +13,6 @@ def _parse_list(raw: str) -> list[str]:
 
 
 def generate_initial_queries(venture: str) -> list[str]:
-    """
-    8 targeted Tavily queries: market intel + people signals.
-    Targets news/press sources (zawya, gulf-times, arabianbusiness, qatarfreezones.qa,
-    Hamad Port, QTerminals, GWC press pages) which name real executives freely.
-    site:linkedin.com avoided — LinkedIn blocks Tavily scraping.
-    Uses MODEL_FAST.
-    """
     response = llm.chat.completions.create(
         model=MODEL_FAST,
         messages=[{
@@ -51,11 +44,6 @@ Return ONLY a JSON array of 8 strings, no preamble, no markdown:
 
 
 def generate_fallback_queries(venture: str, found_count: int, tried: list[str]) -> list[str]:
-    """
-    8 fresh queries when fewer than 3 verified people found.
-    Completely different angles. Targets news/press/government sources.
-    Uses MODEL_FAST.
-    """
     tried_str = "\n".join(f"- {q}" for q in tried)
 
     response = llm.chat.completions.create(
@@ -92,12 +80,6 @@ Return ONLY a JSON array of 8 strings, no preamble, no markdown:
 
 
 def extract_titles_for_apollo(venture: str) -> list[str]:
-    """
-    Kept for backwards compatibility — now used only as title hints for
-    Hunter.io enrichment and synthesis, not for Apollo (which is removed).
-    Returns 6 relevant job titles for this venture.
-    Uses MODEL_FAST.
-    """
     response = llm.chat.completions.create(
         model=MODEL_FAST,
         messages=[{
@@ -120,11 +102,6 @@ Return ONLY a JSON array of 6 strings:
 
 
 def generate_apollo_keywords(venture: str) -> str:
-    """
-    Kept for backwards compatibility — generates industry keyword string.
-    Now used as context for synthesis rather than Apollo queries.
-    Uses MODEL_FAST.
-    """
     response = llm.chat.completions.create(
         model=MODEL_FAST,
         messages=[{

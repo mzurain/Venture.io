@@ -1,20 +1,3 @@
-"""
-enrich.py
----------
-Unified contact enrichment. No Apollo (dead for Qatar). No Proxycurl (paid).
-
-For each person found by Tavily/news extraction:
-  1. Tavily searches "Name" Company site:linkedin.com/in → top 3 URLs
-     LLM picks the correct one by matching name + title + company against snippets
-     If not confident → linkedin_url stays empty (better than wrong)
-  2. Hunter.io /email-finder → verified work email (25 free/month)
-
-Set in .env:
-  HUNTER_API_KEY=your_key
-  TAVILY_API_KEY=your_key   (already set)
-  GROQ_API_KEY=your_key     (already set)
-"""
-
 import os
 import re
 import json
@@ -24,8 +7,6 @@ from config import search_client, llm, MODEL_FAST
 HUNTER_API_KEY = os.environ.get("HUNTER_API_KEY", "")
 HUNTER_BASE    = "https://api.hunter.io/v2"
 
-
-# ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _normalise(s: str) -> str:
     return re.sub(r"[^a-z0-9]", "", s.lower().strip())
@@ -41,21 +22,7 @@ def _guess_domain(company: str) -> str:
     return f"{first_word}.com" if first_word else ""
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Step 1: Tavily + LLM → LinkedIn URL
-# ══════════════════════════════════════════════════════════════════════════════
-
 def find_linkedin(name: str, title: str, company: str) -> str:
-    """
-    Search Tavily for this person's LinkedIn profile URL.
-    Returns a verified linkedin.com/in/ URL or "" if not confident.
-
-    Flow:
-      1. Tavily searches: "Name" "Company" site:linkedin.com/in
-      2. Collect top 3 results (URL + snippet)
-      3. LLM picks the correct one by matching name+title+company
-      4. If LLM says none match → return ""
-    """
     query = f'"{name}" "{company}" site:linkedin.com/in'
 
     try:
@@ -73,36 +40,22 @@ def find_linkedin(name: str, title: str, company: str) -> str:
     if not results:
         return ""
 
-    # Filter to only linkedin.com/in/ URLs
-    candidates = [
-        r for r in results
-        if "linkedin.com/in/" in r.get("url", "")
-    ]
+    candidates = [r for r in results if "linkedin.com/in/" in r.get("url", "")]
 
     if not candidates:
         return ""
 
     if len(candidates) == 1:
-        # Only one result — still verify with LLM
         url     = candidates[0].get("url", "")
         snippet = candidates[0].get("content", "")
         if _llm_verify_single(name, title, company, url, snippet):
             return url
         return ""
 
-    # Multiple candidates — ask LLM to pick
     return _llm_pick_linkedin(name, title, company, candidates)
 
 
-def _llm_verify_single(name: str, title: str, company: str,
-                        url: str, snippet: str) -> bool:
-    """
-    Verify a single LinkedIn URL belongs to this person.
-    STRICT: snippet must explicitly mention the company name.
-    Returns True only if confident, False otherwise.
-    """
-    # Hard check first: company name must appear in snippet (case-insensitive)
-    # This catches the "Mohamed Al Thani at QNB" vs "Qatar Free Zones Authority" problem
+def _llm_verify_single(name: str, title: str, company: str, url: str, snippet: str) -> bool:
     if company and company.lower() not in snippet.lower():
         return False
 
@@ -135,17 +88,11 @@ Reply with only YES or NO."""
         return False
 
 
-def _llm_pick_linkedin(name: str, title: str, company: str,
-                        candidates: list) -> str:
-    """
-    Give LLM up to 3 candidate URLs+snippets, ask it to pick the correct one.
-    Returns the winning URL or "" if none are confident matches.
-    """
+def _llm_pick_linkedin(name: str, title: str, company: str, candidates: list) -> str:
     numbered = ""
     for i, c in enumerate(candidates, 1):
         numbered += f"\n{i}. URL: {c.get('url','')}\n   Snippet: {c.get('content','')[:250]}\n"
 
-    # Pre-filter: only keep candidates whose snippet mentions the company
     candidates = [
         c for c in candidates
         if company and company.lower() in c.get("content", "").lower()
@@ -198,16 +145,7 @@ Rules:
         return ""
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Step 2: Hunter.io → verified email
-# ══════════════════════════════════════════════════════════════════════════════
-
 def hunter_find_email(name: str, company: str, domain: str = "") -> dict:
-    """
-    Call Hunter.io /email-finder for name + company domain.
-    Returns { email, source, confidence, note }.
-    25 free lookups/month.
-    """
     if not HUNTER_API_KEY:
         return _no_email(name, company, "Hunter API key not configured")
 
@@ -283,17 +221,7 @@ def _no_email(name: str, company: str, reason: str = "") -> dict:
     }
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Batch enrich
-# ══════════════════════════════════════════════════════════════════════════════
-
 def enrich_people(people: list) -> list:
-    """
-    Enrich a list of person dicts with LinkedIn URLs and emails.
-    Mutates in-place.
-    - LinkedIn: Tavily search + LLM verification (free, uses existing APIs)
-    - Email: Hunter.io (25 free/month, stops at limit)
-    """
     HUNTER_FREE_LIMIT = 25
     hunter_used = 0
 
@@ -302,15 +230,12 @@ def enrich_people(people: list) -> list:
         company = person.get("company", "")
         title   = person.get("title", "")
 
-        # ── LinkedIn via Tavily + LLM ──────────────────────────────────────
-        # Skip if we already have a valid LinkedIn URL from extraction
         existing_url = person.get("url", "")
         if "linkedin.com/in/" in existing_url:
             person["linkedin_url"] = existing_url
         else:
             person["linkedin_url"] = find_linkedin(name, title, company)
 
-        # ── Email via Hunter ───────────────────────────────────────────────
         if hunter_used < HUNTER_FREE_LIMIT:
             hunter = hunter_find_email(name, company)
             hunter_used += 1
