@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discovery Agent — Utopia Studio</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f0f0f;
+      --surface:   #161616;
+      --border:    #2a2a2a;
+      --text:      #e8e8e8;
+      --muted:     #666;
+      --accent:    #c8f135;
+      --accent-dim:#8aaa22;
+      --danger:    #ff5f5f;
+      --warn-bg:   #1a1200;
+      --warn-border:#3a2800;
+      --warn-text: #c89a20;
+      --qatar:     #8b0029;
+      --qatar-bg:  #1a0008;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'IBM Plex Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-weight: 300;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo { font-family: var(--mono); font-size: 13px; color: var(--muted); letter-spacing: 0.05em; }
+    .logo span { color: var(--accent); }
+
+    .header-right { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); display: inline-block;
+      margin-right: 6px; animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+    /* ── Main ── */
+    main { max-width: 860px; margin: 0 auto; padding: 56px 40px 120px; }
+
+    h1 { font-size: 26px; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 6px; }
+
+    .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 14px; line-height: 1.6; }
+
+    .g0-banner {
+      background: #111;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+      padding: 10px 16px;
+      margin-bottom: 40px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .g0-banner strong { color: var(--accent); font-weight: 500; }
+
+    /* ── Input ── */
+    .input-block { margin-bottom: 28px; }
+
+    label {
+      display: block;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;
+    }
+
+    .quick-picks {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 6px; margin-bottom: 10px;
+    }
+
+    .quick-pick-btn {
+      background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+      padding: 8px 10px; border-radius: 3px; cursor: pointer;
+      font-size: 11px; font-family: var(--mono); transition: all 0.15s;
+      text-align: left; line-height: 1.4;
+    }
+    .quick-pick-btn:hover { border-color: #555; color: var(--text); }
+
+    textarea {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 4px; color: var(--text); font-family: var(--sans);
+      font-size: 15px; font-weight: 300; padding: 14px 16px; resize: none;
+      outline: none; transition: border-color 0.15s; line-height: 1.6;
+    }
+    textarea:focus { border-color: #444; }
+    textarea::placeholder { color: #333; }
+
+    button#run {
+      background: var(--accent); color: #0f0f0f; border: none; border-radius: 4px;
+      font-family: var(--mono); font-size: 12px; font-weight: 500;
+      letter-spacing: 0.08em; padding: 13px 28px; cursor: pointer; transition: all 0.15s;
+    }
+    button#run:hover { background: #d4f94a; }
+    button#run:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Log ── */
+    #log { margin-top: 40px; display: none; }
+
+    .log-label {
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px;
+    }
+
+    .log-lines {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+      padding: 14px 16px; font-family: var(--mono); font-size: 12px;
+      color: #555; line-height: 1.8; min-height: 60px; max-height: 200px; overflow-y: auto;
+    }
+    .log-lines .active { color: var(--accent); }
+    .log-lines .warn   { color: var(--warn-text); }
+
+    /* ── Results ── */
+    #results { margin-top: 48px; display: none; }
+
+    .meta-bar { display: flex; gap: 10px; margin-bottom: 32px; flex-wrap: wrap; }
+
+    .meta-pill {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 14px;
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+    }
+    .meta-pill.good    { border-color: #2a4a2a; color: #6fcf6f; }
+    .meta-pill.warn    { border-color: var(--warn-border); color: var(--warn-text); }
+    .meta-pill.neutral { border-color: #333; color: var(--muted); }
+
+    /* ── Section ── */
+    .section { margin-bottom: 44px; }
+
+    .section-title {
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 16px; padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    /* ── Market brief ── */
+    .brief-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+    .brief-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 4px; padding: 16px;
+    }
+
+    .brief-card-title {
+      font-family: var(--mono); font-size: 10px; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px;
+    }
+
+    .brief-card ul { list-style: none; }
+    .brief-card li {
+      font-size: 12.5px; color: var(--text); line-height: 1.5;
+      padding: 5px 0; border-bottom: 1px solid var(--border);
+    }
+    .brief-card li:last-child { border-bottom: none; }
+
+    /* ── Targets ── */
+    .target {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 18px 0; border-bottom: 1px solid var(--border);
+    }
+    .target:last-child { border-bottom: none; }
+
+    .target-num { font-family: var(--mono); font-size: 11px; color: #444; min-width: 24px; padding-top: 3px; }
+
+    .target-main { flex: 1; }
+
+    .target-header { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; flex-wrap: wrap; }
+
+    .target-name { font-size: 14px; font-weight: 500; }
+
+    .qatar-badge {
+      background: var(--qatar-bg); border: 1px solid var(--qatar);
+      color: #ff4d6d; border-radius: 3px;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em;
+      padding: 2px 7px; text-transform: uppercase;
+    }
+
+    .conf-badge {
+      border-radius: 3px; font-family: var(--mono); font-size: 9px;
+      letter-spacing: 0.06em; padding: 2px 7px; text-transform: uppercase;
+    }
+    .conf-badge.high   { background: #0d1f0d; border: 1px solid #2a4a2a; color: #6fcf6f; }
+    .conf-badge.medium { background: #1a1500; border: 1px solid #3a3000; color: #b8a020; }
+    .conf-badge.low    { background: #1a0a0a; border: 1px solid #3a1a1a; color: #cf6f6f; }
+
+    .target-role { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-bottom: 6px; }
+    .target-rationale { font-size: 13px; color: #aaa; line-height: 1.55; margin-bottom: 4px; }
+    .target-source { font-family: var(--mono); font-size: 10px; }
+    .target-source a { color: #555; text-decoration: none; }
+    .target-source a:hover { color: var(--muted); }
+
+    /* ── Gap note ── */
+    .gap-block {
+      background: var(--warn-bg); border: 1px solid var(--warn-border);
+      border-left: 3px solid var(--warn-text); border-radius: 4px;
+      padding: 14px 18px;
+    }
+
+    .gap-label {
+      font-family: var(--mono); font-size: 10px; color: var(--warn-text);
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;
+    }
+
+    .gap-text { font-size: 13px; color: #c8a030; line-height: 1.65; }
+
+    /* ── Outreach ── */
+    .email-block {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 4px; overflow: hidden;
+    }
+
+    .email-meta {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: 11px; color: var(--muted);
+      display: flex; gap: 24px; flex-wrap: wrap;
+    }
+    .email-meta-field { display: flex; gap: 8px; }
+    .email-meta-key { color: #444; }
+    .email-meta-val { color: var(--text); }
+
+    .email-body {
+      padding: 18px 16px; font-size: 14px; line-height: 1.75;
+      color: #ccc; white-space: pre-wrap;
+    }
+
+    .send-btn {
+      background: var(--accent); color: #0f0f0f; border: none; border-radius: 4px;
+      font-family: var(--mono); font-size: 11px; font-weight: 500;
+      letter-spacing: 0.08em; padding: 10px 16px; margin-top: 16px;
+      cursor: pointer; transition: all 0.15s;
+      display: block;
+    }
+    .send-btn:hover { background: #d4f94a; }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .outreach-status {
+      margin-top: 12px; padding: 10px 12px; border-radius: 4px;
+      font-size: 12px; font-family: var(--mono); line-height: 1.5;
+    }
+    .outreach-status.success {
+      background: #0d1f0d; border: 1px solid #2a4a2a; color: #6fcf6f;
+    }
+    .outreach-status.error {
+      background: #1a0a0a; border: 1px solid #3a1a1a; color: #cf6f6f;
+    }
+
+    .email-note {
+      margin: 12px 0 0; padding: 10px 14px; border-radius: 3px;
+      font-family: var(--mono); font-size: 11px; line-height: 1.6;
+      background: #111; border: 1px solid var(--border); color: var(--muted);
+    }
+    .email-note.verified { border-color: #2a4a2a; color: #6fcf6f; background: #0d1f0d; }
+    .email-note.guess    { border-color: var(--warn-border); color: var(--warn-text); background: var(--warn-bg); }
+    .email-note.no_email { border-color: #3a1a1a; color: #cf6f6f; background: #1a0a0a; }
+
+    .followup-block {
+      margin-top: 20px; background: #111; border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-dim); border-radius: 4px; padding: 14px 16px;
+    }
+    .followup-label {
+      font-family: var(--mono); font-size: 10px; color: var(--accent-dim);
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px;
+    }
+    .followup-body {
+      font-size: 13px; color: #bbb; white-space: pre-wrap; line-height: 1.75;
+    }
+
+    /* ── All People Dropdown ── */
+    .toggle-btn {
+      background: none; border: 1px solid #444; color: #666;
+      font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+      cursor: pointer; border-radius: 2px; transition: all 0.15s;
+    }
+    .toggle-btn:hover { border-color: #666; color: #999; }
+
+    .all-people-candidate {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .all-people-candidate:last-child { border-bottom: none; }
+
+    .candidate-num { font-family: var(--mono); font-size: 10px; color: #444; min-width: 20px; padding-top: 2px; }
+    .candidate-main { flex: 1; }
+    .candidate-name { font-size: 13px; font-weight: 500; }
+    .candidate-role { font-size: 11px; color: var(--muted); font-family: var(--mono); margin: 2px 0; }
+    .candidate-conf { display: inline-block; font-size: 9px; margin-top: 4px; }
+
+    /* ── Pipeline notes ── */
+    .pipeline-block {
+      background: #111; border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-dim); border-radius: 4px;
+      padding: 14px 18px;
+    }
+    .pipeline-label {
+      font-family: var(--mono); font-size: 10px; color: var(--accent-dim);
+      text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
+    }
+    .pipeline-text { font-size: 13px; color: #bbb; line-height: 1.6; }
+
+    /* ── JSON ── */
+    .json-block {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+      padding: 16px 18px; font-family: var(--mono); font-size: 11px; color: #666;
+      line-height: 1.7; white-space: pre-wrap; overflow-x: auto;
+      max-height: 400px; overflow-y: auto;
+    }
+
+    .copy-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 3px; font-family: var(--mono); font-size: 10px;
+      letter-spacing: 0.08em; padding: 4px 12px; cursor: pointer; transition: all 0.15s;
+    }
+    .copy-btn:hover { border-color: #555; color: var(--text); }
+
+    .error-block {
+      background: #1a0a0a; border: 1px solid #3a1010; border-radius: 4px;
+      padding: 14px 18px; font-family: var(--mono); font-size: 12px;
+      color: var(--danger); margin-top: 24px; display: none;
+    }
+
+    /* ── Contact Card ── */
+    .contact-btn {
+      background: #1a1a2e; border: 1px solid #3a3a6a; color: #7b7bdb;
+      border-radius: 4px; font-family: var(--mono); font-size: 11px;
+      font-weight: 500; letter-spacing: 0.08em; padding: 10px 16px;
+      margin-top: 16px; cursor: pointer; transition: all 0.15s; display: block;
+    }
+    .contact-btn:hover { background: #222244; border-color: #5555aa; color: #9999ee; }
+    .contact-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .contact-card {
+      margin-top: 16px; background: #0d0d1a; border: 1px solid #2a2a50;
+      border-radius: 4px; overflow: hidden;
+    }
+    .contact-card-header {
+      padding: 10px 16px; background: #111128; border-bottom: 1px solid #2a2a50;
+      font-family: var(--mono); font-size: 10px; color: #5555aa;
+      letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .contact-card-body { padding: 4px 0; }
+    .contact-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px 16px; border-bottom: 1px solid #1a1a30;
+    }
+    .contact-row:last-child { border-bottom: none; }
+    .contact-icon {
+      font-size: 13px; min-width: 20px; text-align: center; opacity: 0.7;
+    }
+    .contact-label {
+      font-family: var(--mono); font-size: 10px; color: #444466;
+      min-width: 80px; text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .contact-value { font-size: 12px; flex: 1; }
+    .contact-value a {
+      color: #7b7bdb; text-decoration: none;
+    }
+    .contact-value a:hover { color: #aaaaff; text-decoration: underline; }
+    .contact-value.found     { color: var(--text); }
+    .contact-value.not-found { color: #333355; font-style: italic; }
+    .contact-source-tag {
+      font-family: var(--mono); font-size: 9px; padding: 2px 6px;
+      border-radius: 2px; margin-left: 8px; white-space: nowrap;
+    }
+    .contact-source-tag.verified { background: #0d1f0d; border: 1px solid #2a4a2a; color: #6fcf6f; }
+    .contact-source-tag.guess    { background: #1a1200; border: 1px solid #3a2800; color: #c89a20; }
+    .contact-source-tag.apollo   { background: #0d0d1f; border: 1px solid #2a2a5a; color: #7b7bdb; }
+    .contact-source-tag.scrape   { background: #0d1a1a; border: 1px solid #1a3a3a; color: #4aafaf; }
+    .contact-note {
+      margin-top: 12px; padding: 10px 14px; border-radius: 3px;
+      font-family: var(--mono); font-size: 11px; line-height: 1.6;
+      background: #111; border: 1px solid var(--border); color: var(--muted);
+    }
+    .contact-note.verified { border-color: #2a4a2a; color: #6fcf6f; background: #0d1f0d; }
+    .contact-note.guess    { border-color: var(--warn-border); color: var(--warn-text); background: var(--warn-bg); }
+    .contact-note.no_email { border-color: #3a1a1a; color: #cf6f6f; background: #1a0a0a; }
+
+    @media (max-width: 600px) {
+      main { padding: 32px 20px 80px; }
+      header { padding: 14px 20px; }
+      .brief-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">utopia.<span>os</span> / discovery-agent</div>
+  <div class="header-right"><span class="status-dot"></span>M2 · Investment Track</div>
+</header>
+
+<main>
+  <h1>Venture Discovery Agent</h1>
+  <p class="subtitle">One sentence in. Market brief, five real call targets, and a personalised outreach email out.</p>
+
+  <div class="g0-banner">
+    <strong>G0 requirement:</strong> ≥ 3 booked discovery calls before your review — <strong>at least one Qatar-based customer.</strong><br>
+    This agent searches the web exhaustively for real people, then writes your first outreach.<br>
+    Bring the output to the <strong>Radical Asia / A-Typical Ventures</strong> pipeline call.
+  </div>
+
+  <div class="input-block">
+    <label>Venture Description</label>
+    <div class="quick-picks">
+      <button class="quick-pick-btn" onclick="selectVenture('B2B SaaS for last-mile logistics optimisation in Qatar — helping courier companies and retailers reduce failed deliveries and route inefficiency')">Last-Mile Logistics QA</button>
+      <button class="quick-pick-btn" onclick="selectVenture('IoT cold chain monitoring and compliance SaaS for Qatar food and pharma logistics companies')">Cold Chain IoT QA</button>
+      <button class="quick-pick-btn" onclick="selectVenture('Cloud-based warehouse management system for Qatar free zone operators and 3PL providers')">Warehouse Mgmt SaaS</button>
+      <button class="quick-pick-btn" onclick="selectVenture('Customs clearance and cross-border trade documentation automation platform for GCC freight forwarders and importers')">Cross-Border Automation</button>
+    </div>
+    <textarea id="venture" rows="3" placeholder="Describe your venture in one or two sentences..."></textarea>
+  </div>
+
+  <button id="run" onclick="runAgent()">RUN AGENT →</button>
+
+  <div id="error" class="error-block"></div>
+
+  <div id="log">
+    <div class="log-label">Agent thinking</div>
+    <div class="log-lines" id="log-lines"></div>
+  </div>
+
+  <div id="results">
+
+    <div class="meta-bar" id="meta-bar"></div>
+
+    <!-- Market Brief -->
+    <div class="section">
+      <div class="section-title">Market Brief</div>
+      <div class="brief-grid">
+        <div class="brief-card">
+          <div class="brief-card-title">Segments</div>
+          <ul id="segments"></ul>
+        </div>
+        <div class="brief-card">
+          <div class="brief-card-title">Pain Points</div>
+          <ul id="pain-points"></ul>
+        </div>
+        <div class="brief-card">
+          <div class="brief-card-title">Key Players</div>
+          <ul id="key-players"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Call Targets -->
+    <div class="section">
+      <div class="section-title">
+        <span>Call Targets</span>
+        <span id="qatar-count-label" style="font-size:10px;"></span>
+      </div>
+      <div id="targets"></div>
+    </div>
+
+    <!-- Gap Note (shown only when < 3 targets) -->
+    <div class="section" id="section-gap" style="display:none">
+      <div class="section-title" style="color: var(--warn-text); border-color: var(--warn-border);">⚠ Pipeline Gap — Manual Research Required</div>
+      <div class="gap-block">
+        <div class="gap-label">Next steps for the fellow</div>
+        <div class="gap-text" id="gap-text"></div>
+      </div>
+    </div>
+
+    <!-- Outreach Email -->
+    <div class="section" id="section-outreach" style="display:none">
+      <div class="section-title">Outreach Email — Target #1</div>
+      <div class="email-block">
+        <div class="email-meta" id="email-meta"></div>
+        <div class="email-body" id="email-body"></div>
+        <button id="find-contact-btn" class="contact-btn" onclick="findContact()">FIND CONTACT DETAILS →</button>
+        <div id="contact-status" class="outreach-status" style="display:none;"></div>
+        <div id="contact-card" class="contact-card" style="display:none;">
+          <div class="contact-card-header">Contact Card · Target #1</div>
+          <div class="contact-card-body" id="contact-card-body"></div>
+        </div>
+        <div id="contact-note" class="contact-note" style="display:none;"></div>
+        <div id="followup-block" class="followup-block" style="display:none;">
+          <div class="followup-label">Follow-up template — send on <span id="followup-date"></span></div>
+          <div class="followup-body" id="followup-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Low Confidence Targets (Dropdown) -->
+    <div class="section" id="section-all-people" style="display:none">
+      <div class="section-title">
+        <span>All Extracted Candidates (Lower Confidence)</span>
+        <button class="toggle-btn" onclick="toggleAllPeople()">[SHOW]</button>
+      </div>
+      <div id="all-people-list" style="display:none;"></div>
+    </div>
+
+    <!-- Pipeline Notes -->
+    <div class="section" id="section-pipeline" style="display:none">
+      <div class="section-title">Pipeline Call Note</div>
+      <div class="pipeline-block">
+        <div class="pipeline-label">Radical Asia / A-Typical Ventures</div>
+        <div class="pipeline-text" id="pipeline-text"></div>
+      </div>
+    </div>
+
+    <!-- Raw JSON -->
+    <div class="section">
+      <div class="section-title">
+        Raw JSON
+        <button class="copy-btn" onclick="copyJSON()">COPY</button>
+      </div>
+      <div class="json-block" id="json-output"></div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  let rawJSON = null;
+
+  function selectVenture(desc) {
+    document.getElementById('venture').value = desc;
+  }
+
+  function log(msg, type = 'normal') {
+    const lines = document.getElementById('log-lines');
+    const el    = document.createElement('div');
+    el.textContent = msg;
+    if (type === 'active') {
+      lines.querySelectorAll('.active').forEach(e => e.classList.remove('active'));
+      el.className = 'active';
+    } else if (type === 'warn') {
+      el.className = 'warn';
+    }
+    lines.appendChild(el);
+    lines.scrollTop = lines.scrollHeight;
+  }
+
+  async function runAgent() {
+    const venture = document.getElementById('venture').value.trim();
+    if (!venture) return;
+
+    const btn       = document.getElementById('run');
+    const logEl     = document.getElementById('log');
+    const resultsEl = document.getElementById('results');
+    const errorEl   = document.getElementById('error');
+
+    btn.disabled            = true;
+    btn.textContent         = 'RUNNING...';
+    logEl.style.display     = 'block';
+    resultsEl.style.display = 'none';
+    errorEl.style.display   = 'none';
+    document.getElementById('log-lines').innerHTML = '';
+    rawJSON = null;
+
+    log(`→ venture: "${venture}"`, 'active');
+
+    try {
+      const response = await fetch('/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ venture })
+      });
+
+      if (!response.ok) throw new Error(await response.text());
+
+      const reader  = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer    = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          if (line.startsWith('LOG:')) {
+            const msg  = line.slice(4).trim();
+            const type = msg.includes('⚠') ? 'warn' : 'active';
+            log(msg, type);
+          } else if (line.startsWith('RESULT:')) {
+            rawJSON = JSON.parse(line.slice(7).trim());
+            renderResults(rawJSON);
+          } else if (line.startsWith('ERROR:')) {
+            throw new Error(line.slice(6).trim());
+          }
+        }
+      }
+
+    } catch (err) {
+      errorEl.textContent   = '✗ ' + err.message;
+      errorEl.style.display = 'block';
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'RUN AGENT →';
+      document.querySelectorAll('#log-lines .active').forEach(e => e.classList.remove('active'));
+    }
+  }
+
+  function renderResults(data) {
+    const meta    = data.extraction_metadata || {};
+    const targets = data.call_targets || [];
+    const quality = meta.data_quality || 'unknown';
+
+    // Meta bar
+    const qualityClass = quality === 'good' ? 'good' : quality === 'adequate' ? 'neutral' : 'warn';
+    document.getElementById('meta-bar').innerHTML = [
+      `<div class="meta-pill ${qualityClass}">${targets.length} targets found</div>`,
+      `<div class="meta-pill neutral">${meta.queries_run || 0} queries run</div>`,
+      `<div class="meta-pill neutral">${meta.sources_scraped || 0} sources scraped</div>`,
+      `<div class="meta-pill neutral">${meta.people_found || 0} people extracted</div>`,
+      `<div class="meta-pill ${qualityClass}">quality: ${quality}</div>`,
+    ].join('');
+
+    // Brief
+    const brief = data.market_brief || {};
+    document.getElementById('segments').innerHTML    = (brief.segments    || []).map(s => `<li>${s}</li>`).join('');
+    document.getElementById('pain-points').innerHTML = (brief.pain_points || []).map(p => `<li>${p}</li>`).join('');
+    document.getElementById('key-players').innerHTML = (brief.key_players || []).map(k => `<li>${k}</li>`).join('');
+
+    // Qatar count label
+    const qatarCount = targets.filter(t => t.is_qatar_based).length;
+    const qatarLabel = document.getElementById('qatar-count-label');
+    if (qatarCount > 0) {
+      qatarLabel.style.color  = 'var(--accent)';
+      qatarLabel.textContent  = `🇶🇦 ${qatarCount} Qatar-based`;
+    } else if (targets.length > 0) {
+      qatarLabel.style.color  = 'var(--warn-text)';
+      qatarLabel.textContent  = '⚠ no Qatar targets found';
+    }
+
+    // Targets
+    document.getElementById('targets').innerHTML = targets.length
+      ? targets.map((t, i) => {
+          const conf    = (t.data_confidence || 'low').toLowerCase();
+          const isQatar = t.is_qatar_based;
+          let host = '';
+          try { host = new URL(t.source_url).hostname; } catch(e) { host = t.source_url || ''; }
+
+          return `
+            <div class="target">
+              <div class="target-num">${String(i+1).padStart(2,'0')}</div>
+              <div class="target-main">
+                <div class="target-header">
+                  <div class="target-name">${t.name || '—'}</div>
+                  ${isQatar ? '<span class="qatar-badge">🇶🇦 Qatar</span>' : ''}
+                  <span class="conf-badge ${conf}">${conf}</span>
+                </div>
+                <div class="target-role">${t.title || ''} · ${t.company || ''}${t.location ? ' · ' + t.location : ''}</div>
+                <div class="target-rationale">${t.rationale || ''}</div>
+                ${host ? `<div class="target-source">↗ <a href="${t.source_url}" target="_blank" rel="noopener">${host}</a></div>` : ''}
+              </div>
+            </div>`;
+        }).join('')
+      : '<div style="color:var(--muted);font-size:13px;padding:12px 0;">No verified targets found from web search. See gap note below.</div>';
+
+    // Gap note
+    const gapNote = data.gap_note;
+    if (gapNote) {
+      document.getElementById('gap-text').textContent    = gapNote;
+      document.getElementById('section-gap').style.display = 'block';
+    } else {
+      document.getElementById('section-gap').style.display = 'none';
+    }
+
+    // Outreach
+    const outreach = data.outreach_message || {};
+    if (outreach.to) {
+      document.getElementById('email-meta').innerHTML = `
+        <div class="email-meta-field"><span class="email-meta-key">To:</span><span class="email-meta-val">${outreach.to}</span></div>
+        <div class="email-meta-field"><span class="email-meta-key">Subject:</span><span class="email-meta-val">${outreach.subject || ''}</span></div>`;
+      document.getElementById('email-body').textContent       = outreach.body || '';
+      document.getElementById('section-outreach').style.display = 'block';
+    }
+
+    // All people dropdown
+    const allPeople = data.all_people || [];
+    if (allPeople.length > targets.length) {
+      const lowConfidence = allPeople.filter(p => 
+        !targets.find(t => t.name.toLowerCase() === p.name.toLowerCase())
+      );
+      if (lowConfidence.length > 0) {
+        document.getElementById('all-people-list').innerHTML = lowConfidence.map((p, i) => {
+          const conf = (p.data_confidence || 'low').toLowerCase();
+          const isQatar = p.is_qatar_based;
+          return `
+            <div class="all-people-candidate">
+              <div class="candidate-num">${String(i+1).padStart(2,'0')}</div>
+              <div class="candidate-main">
+                <div class="candidate-name">${p.name || '—'} ${isQatar ? '🇶🇦' : ''}</div>
+                <div class="candidate-role">${p.title || 'Title unknown'} · ${p.company || 'Company unknown'}</div>
+                <span class="conf-badge ${conf}" style="margin-top:4px;display:inline-block;">${conf}</span>
+                ${p.url ? `<div class="target-source" style="margin-top:4px;">↗ <a href="${p.url}" target="_blank" rel="noopener">View</a></div>` : ''}
+              </div>
+            </div>`;
+        }).join('');
+        document.getElementById('section-all-people').style.display = 'block';
+      }
+    }
+
+    // Pipeline notes
+    const pipelineText = data.pipeline_notes || '';
+    if (pipelineText) {
+      document.getElementById('pipeline-text').textContent       = pipelineText;
+      document.getElementById('section-pipeline').style.display  = 'block';
+    }
+
+    // JSON
+    document.getElementById('json-output').textContent = JSON.stringify(data, null, 2);
+
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function copyJSON() {
+    if (!rawJSON) return;
+    navigator.clipboard.writeText(JSON.stringify(rawJSON, null, 2));
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'COPIED';
+    setTimeout(() => btn.textContent = 'COPY', 1500);
+  }
+
+  async function findContact() {
+    if (!rawJSON) return;
+
+    const btn        = document.getElementById('find-contact-btn');
+    const statusEl   = document.getElementById('contact-status');
+    const cardEl     = document.getElementById('contact-card');
+    const cardBody   = document.getElementById('contact-card-body');
+    const noteEl     = document.getElementById('contact-note');
+    const followupEl = document.getElementById('followup-block');
+
+    btn.disabled    = true;
+    btn.textContent = 'SEARCHING...';
+    statusEl.style.display   = 'none';
+    cardEl.style.display     = 'none';
+    noteEl.style.display     = 'none';
+    followupEl.style.display = 'none';
+
+    try {
+      const response = await fetch('/send_outreach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discovery_result: rawJSON })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        statusEl.className   = 'outreach-status success';
+        statusEl.textContent = `✓ Contact enrichment complete  ·  Logged  ·  Follow-up: ${result.follow_up_date || '—'}`;
+        statusEl.style.display = 'block';
+
+        // Build contact card rows
+        const target = (rawJSON.call_targets || [])[0] || {};
+
+        function row(icon, label, value, href, sourceTag) {
+          const found  = value && value !== '—';
+          const valHtml = found
+            ? (href ? `<a href="${href}" target="_blank" rel="noopener">${value}</a>` : value)
+            : '<span style="color:#333355;font-style:italic;">not found</span>';
+          const tagHtml = found && sourceTag
+            ? `<span class="contact-source-tag ${sourceTag}">${sourceTag}</span>`
+            : '';
+          return `
+            <div class="contact-row">
+              <div class="contact-icon">${icon}</div>
+              <div class="contact-label">${label}</div>
+              <div class="contact-value ${found ? 'found' : 'not-found'}">${valHtml}${tagHtml}</div>
+            </div>`;
+        }
+
+        const li       = result.linkedin  || '';
+        const email    = result.email !== '— could not determine email —' ? result.email : '';
+        const phone    = result.phone     || '';
+        const website  = result.website   || '';
+        const twitter  = result.twitter   || '';
+
+        cardBody.innerHTML = [
+          row('👤', 'Name',     target.name    || '—', '',     ''),
+          row('🏢', 'Company',  target.company || '—', website || '', ''),
+          row('💼', 'Title',    target.title   || '—', '',     ''),
+          row('🔗', 'LinkedIn', li  ? li  : '', li  || '', li  ? 'verified' : ''),
+          row('✉',  'Email',    email ? email : '', email ? `mailto:${email}` : '', email ? result.email_source : ''),
+          row('📞', 'Phone',    phone ? phone : '', phone ? `tel:${phone}` : '', phone ? result.phone_source : ''),
+          row('🌐', 'Website',  website ? website : '', website || '', website ? 'scrape' : ''),
+          row('🐦', 'Twitter',  twitter ? twitter : '', twitter || '', twitter ? 'scrape' : ''),
+        ].join('');
+
+        cardEl.style.display = 'block';
+
+        // Email note
+        if (result.email_note) {
+          const src = result.email_source || 'no_email';
+          noteEl.className     = `contact-note ${src}`;
+          noteEl.textContent   = result.email_note;
+          noteEl.style.display = 'block';
+        }
+
+        // Follow-up template
+        if (result.followup_template) {
+          document.getElementById('followup-date').textContent = result.follow_up_date || '';
+          document.getElementById('followup-body').textContent = result.followup_template;
+          followupEl.style.display = 'block';
+        }
+
+      } else {
+        statusEl.className   = 'outreach-status error';
+        statusEl.textContent = '✗ ' + result.message;
+        statusEl.style.display = 'block';
+      }
+
+    } catch (err) {
+      statusEl.className   = 'outreach-status error';
+      statusEl.textContent = '✗ Network error: ' + err.message;
+      statusEl.style.display = 'block';
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'FIND CONTACT DETAILS →';
+    }
+  }
+
+  function toggleAllPeople() {
+    const list = document.getElementById('all-people-list');
+    const btn = event.target;
+    if (list.style.display === 'none') {
+      list.style.display = 'block';
+      btn.textContent = '[HIDE]';
+    } else {
+      list.style.display = 'none';
+      btn.textContent = '[SHOW]';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('venture').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runAgent(); }
+    });
+  });
+</script>
+</body>
+</html>
