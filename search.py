@@ -13,6 +13,7 @@ def run_query_batch(queries: list[str], depth: str = "basic") -> tuple[str, list
                 max_results=5,
                 include_answer=True,
                 include_raw_content=True,
+                days=730,  # only return results from the last 2 years
             )
 
             if result.get("answer"):

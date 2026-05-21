@@ -23,13 +23,14 @@ Venture: "{venture}"
 
 Rules:
 - Every query MUST include "Qatar" or "Doha" (not just GCC)
+- Every query MUST include at least one of: 2023, 2024, 2025 — we only want recent results
 - Queries 1-2: target zawya.com OR arabianbusiness.com — find named executives with title in this sector Qatar
   Example format: site:zawya.com "logistics" Qatar CEO OR director 2024
 - Queries 3-4: target gulf-times.com OR thepeninsulaqatar.com — named executives or companies in this sector Qatar
 - Query 5: press release OR announcement — top company in this sector Qatar + "appoints" OR "names" OR "welcomes" — these always name executives
 - Query 6: qatarfreezones.qa OR qatarchamber.com — member companies or named officials in this sector
 - Query 7: conference OR summit Qatar 2024 2025 — speakers list for this sector (names real executives)
-- Query 8: market overview — key companies, market size, recent deals Qatar — zawya OR arabianbusiness
+- Query 8: market overview — key companies, market size, recent deals Qatar — zawya OR arabianbusiness 2024 OR 2025
 
 Be highly specific to the venture description. No generic queries.
 Do NOT use site:linkedin.com — LinkedIn blocks scrapers and returns job postings not people.
@@ -63,11 +64,12 @@ Generate 8 NEW queries with completely different angles targeting sources that N
 3. Crunchbase OR wamda.com — GCC founders or CEOs in this sector
 4. Qatar government body OR regulator overseeing this sector + "director general" OR "CEO" OR "chairman"
 5. Press release: specific Qatar company in this sector + "CEO" OR "managing director" announces 2024 OR 2025
-6. Industry report Qatar — zawya OR oxford economics — will cite named experts
+6. Industry report Qatar — zawya OR oxford economics — will cite named experts 2024 OR 2025
 7. Trade show OR exhibition Qatar 2024 2025 keynote speaker — names real executives
-8. "Hamad Port" OR "QTerminals" OR "GWC" OR "Milaha" OR relevant Qatar operator + "head of" OR "director"
+8. "Hamad Port" OR "QTerminals" OR "GWC" OR "Milaha" OR relevant Qatar operator + "head of" OR "director" 2024 OR 2025
 
 Every query MUST include "Qatar" or "Doha".
+Every query MUST include at least one of: 2023, 2024, 2025.
 Do NOT use site:linkedin.com.
 
 Return ONLY a JSON array of 8 strings, no preamble, no markdown:

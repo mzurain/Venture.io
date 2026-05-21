@@ -14,6 +14,18 @@ _SKIP_URL_FRAGMENTS = (
     "/vacancies/",
 )
 
+# Titles that are almost always journalists or article authors, not executives
+_JOURNALIST_TITLE_SIGNALS = (
+    "reporter",
+    "correspondent",
+    "editor",
+    "journalist",
+    "staff writer",
+    "contributor",
+    "author",
+    "columnist",
+)
+
 
 def _confidence(title: str, company: str, url: str) -> str:
     has_title   = bool(title   and title.lower().strip()   not in _NULL)
@@ -28,6 +40,11 @@ def _is_skip_url(url: str) -> bool:
     return any(frag in url_lower for frag in _SKIP_URL_FRAGMENTS)
 
 
+def _is_journalist(title: str, company: str) -> bool:
+    title_lower = title.lower()
+    return any(signal in title_lower for signal in _JOURNALIST_TITLE_SIGNALS)
+
+
 def _extract_batch(blocks: list[str]) -> list:
     combined = "---\n".join(blocks)
 
@@ -37,11 +54,9 @@ def _extract_batch(blocks: list[str]) -> list:
             "role": "user",
             "content": f"""Extract real individual people from the text below. Humans only — not companies, brands, or places.
 
-IMPORTANT — these sources include:
-- News articles from zawya.com, gulf-times.com, arabianbusiness.com, qatarfreezones.qa, press releases
-- LinkedIn posts (URLs containing /posts/) — these are extremely valuable: a post often says
-  "Patrick Moebel, President of FedEx Express Middle East, visited QFZ today" — that is a confirmed real person. Mine these aggressively.
-- Company press releases and event coverage — sentences like "X, Title at Company, said..." are confirmed people.
+These sources are news articles and press releases. They contain two types of people:
+1. EXECUTIVES — the people we want. Named in the article body as decision-makers, quoted with their title and company.
+2. JOURNALISTS — the people we do NOT want. The author or reporter who wrote the article. These appear in bylines, "Written by", "By [Name]", author boxes, or at the very top/bottom of the article with no company mentioned.
 
 For each person extract:
 - name: full name (First Last) — skip single names or usernames
@@ -50,12 +65,13 @@ For each person extract:
 - url: the URL they appeared at
 
 Rules:
-- Mine news articles and LinkedIn posts aggressively for named executives — this is the primary signal
+- INCLUDE people quoted or mentioned in the article body with a clear business title and company — "Francisco De Sousa, Managing Director of talabat, said..." is a confirmed executive
+- EXCLUDE anyone who appears to be the article's author or journalist — "By [Name]", "Written by [Name]", "[Name] is a reporter at Gulf Times" — skip these entirely
+- EXCLUDE people with titles like reporter, correspondent, editor, journalist, staff writer, contributor, columnist
+- EXCLUDE heads of state, royalty, or political figures (presidents, prime ministers, ministers, sheikhs in political roles) unless they are directly relevant as a business decision-maker
 - Do NOT guess or infer missing fields
-- Only include people with a clear professional context
-- Include people even if only title OR company is found (not both required)
 - Arabic names are valid — include them
-- A sentence structure like "[Name], [Title] at [Company], said/announced/visited..." is a confirmed person — always include them
+- Only include people with a clear professional business context
 
 Return ONLY a JSON array, no markdown, no explanation:
 [{{"name": "...", "title": "...", "company": "...", "url": "..."}}]
@@ -140,8 +156,12 @@ def extract_people(raw_results: list) -> list:
         if name.lower() in seen:
             continue
 
-        if title.lower()   in _NULL: title   = ""
+        if title.lower() in _NULL: title   = ""
         if company.lower() in _NULL: company = ""
+
+        # Post-extraction journalist filter as a safety net
+        if _is_journalist(title, company):
+            continue
 
         conf = _confidence(title, company, url)
         if conf == "low":
